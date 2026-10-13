@@ -43,6 +43,7 @@ test_poh_slot_timing_mode( fd_wksp_t * wksp ) {
 
   /* Runtime changes are latched once when replay accepts a reset, so
      the reset message and all subsequent leader timing agree. */
+  fd_wksp_reset( wksp, 42U );
   setup_ctx( ctx, wksp );
   fd_hash_t runtime_root_id = { .ul = { 8999UL } };
   init_root_fec( ctx, &runtime_root_id );
@@ -76,6 +77,7 @@ test_poh_slot_timing_mode( fd_wksp_t * wksp ) {
   /* Verify the effective duration in leader messages for both startup
      modes.  The Tower reset messages above cover both runtime modes. */
   for( int use_nominal=0; use_nominal<=1; use_nominal++ ) {
+    fd_wksp_reset( wksp, 42U );
     setup_ctx( ctx, wksp );
     ctx->use_nominal_slot_duration = use_nominal;
 
@@ -144,8 +146,8 @@ main( int     argc,
       char ** argv ) {
   fd_boot( &argc, &argv );
 
-  char const * _page_sz = fd_env_strip_cmdline_cstr ( &argc, &argv, "--page-sz",  NULL, "gigantic"               );
-  ulong        page_cnt = fd_env_strip_cmdline_ulong( &argc, &argv, "--page-cnt", NULL, 1UL                      );
+  char const * _page_sz = fd_env_strip_cmdline_cstr ( &argc, &argv, "--page-sz",  NULL, "normal"                 );
+  ulong        page_cnt = fd_env_strip_cmdline_ulong( &argc, &argv, "--page-cnt", NULL, 65536UL                  );
   ulong        numa_idx = fd_env_strip_cmdline_ulong( &argc, &argv, "--numa-idx", NULL, fd_shmem_numa_idx( 0UL ) );
   fd_wksp_t * wksp      = fd_wksp_new_anonymous( fd_cstr_to_shmem_page_sz( _page_sz ), page_cnt, fd_shmem_cpu_idx( numa_idx ), "wksp", 0UL );
   FD_TEST( wksp );
@@ -155,6 +157,7 @@ main( int     argc,
 
   FD_TEST( mock_store_view_success_cnt==mock_store_view_release_cnt );
 
+  fd_wksp_delete_anonymous( wksp );
   FD_LOG_NOTICE(( "pass" ));
   fd_halt();
   return 0;
