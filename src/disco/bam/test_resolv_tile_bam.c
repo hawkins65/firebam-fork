@@ -63,7 +63,11 @@ static void
 test_harness_new( test_harness_t * h ) {
   fd_memset( h, 0, sizeof(test_harness_t) );
 
-  h->ctx           = test_alloc( alignof(fd_resolv_ctx_t), sizeof(fd_resolv_ctx_t) );
+  /* The context is mostly blockhash rings that each case barely uses.
+     calloc returns fresh zero pages for it without touching them. */
+  FD_STATIC_ASSERT( alignof(fd_resolv_ctx_t)<=alignof(max_align_t), resolv_ctx_align );
+  h->ctx           = calloc( 1UL, sizeof(fd_resolv_ctx_t) );
+  FD_TEST( h->ctx );
   h->map_mem       = test_alloc( map_align(),       map_footprint( 32UL ) );
   h->nonce_map_mem = test_alloc( map_align(),       map_footprint( 32UL ) );
   h->pool_mem      = test_alloc( pool_align(),      pool_footprint( 4UL )      );
