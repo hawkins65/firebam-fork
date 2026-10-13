@@ -199,6 +199,32 @@ make -j4 test_bam_tile test_pack_bam test_pack_tile_bam test_execle_tile_bam \
 "$(make --silent objdir)/unit-test/test_bam_tile"   # normal pages by default
 ```
 
+For a small-memory check of the BAM tile and replay fixtures, pass an
+explicit manifest and run each profile sequentially. The budgets below
+cover the workspace; static and heap allocations add to process memory.
+
+```bash
+make -j4 test_bam_tile test_bam_replay_tile
+(
+  set -e
+  bam_test_dir="$(make --silent objdir)/unit-test"
+  bam_test_manifest="$(mktemp)"
+  trap 'rm -f "$bam_test_manifest"' EXIT
+
+  printf '%s\n' "$bam_test_dir/test_bam_tile" > "$bam_test_manifest"
+  contrib/test/run_unit_tests.sh --tests "$bam_test_manifest" \
+    --page-sz normal --job-mem 67108864 -j 1
+
+  printf '%s\n' "$bam_test_dir/test_bam_replay_tile" > "$bam_test_manifest"
+  contrib/test/run_unit_tests.sh --tests "$bam_test_manifest" \
+    --page-sz normal --job-mem 268435456 -j 1
+)
+```
+
+These profiles cover two tests. Keep the complete automatic unit suite
+as separate validation, including the other registered BAM pipeline
+tests in `$(make --silent objdir)/unit-test/automatic.txt`.
+
 Changes to shared tiles and headers must still compile Frankendancer: add
 `fdctl` to the build targets, since `all` does not build its Rust-linked
 validator binary. BAM node
